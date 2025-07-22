@@ -1,0 +1,102 @@
+CREATE OR REPLACE TABLE `Project_ID.Dataset_Name.StoreWalkins_Data` AS
+
+(SELECT
+  *,
+  (CASE
+      WHEN (CASE
+        WHEN FORMAT_DATE('%A', DATE(start_date)) = "Saturday"
+      OR FORMAT_DATE('%A', DATE(start_date)) = "Sunday" THEN "WeekEnd"
+        ELSE "WeekDay"
+    END
+      ) = "WeekDay" THEN 1
+      ELSE 0
+  END
+    ) AS WeekDay,
+  (CASE
+      WHEN (CASE
+        WHEN FORMAT_DATE('%A', DATE(start_date)) = "Saturday"
+      OR FORMAT_DATE('%A', DATE(start_date)) = "Sunday" THEN "WeekEnd"  
+        ELSE "WeekDay"
+    END
+      ) = "WeekEnd" THEN 1
+      ELSE 0
+  END
+    ) AS WeekEnd,
+    ABS(FARM_FINGERPRINT(CONCAT(agentCode,Date))) as unique_positive_fingerprint,
+    (CASE WHEN invoiceNumber is null then "Non-Purchased Walkins" ELSE "Purchased Walkins" END) AS Filterr
+FROM (
+  SELECT
+    *,
+    (CASE
+        WHEN LOWER(LEFT(FORMAT_DATE('%B', start_date),3)) = "jan" OR LOWER(LEFT(FORMAT_DATE('%B', start_date),3)) = "mar" OR LOWER(LEFT(FORMAT_DATE('%B', start_date),3)) = "may" OR LOWER(LEFT(FORMAT_DATE('%B', start_date),3)) = "jul" OR LOWER(LEFT(FORMAT_DATE('%B', start_date),3)) = "aug" OR LOWER(LEFT(FORMAT_DATE('%B', start_date),3)) = "oct" OR LOWER(LEFT(FORMAT_DATE('%B', start_date),3)) = "dec" THEN 31
+        WHEN LOWER(LEFT(FORMAT_DATE('%B', start_date),3)) = "feb" THEN 28
+        WHEN LOWER(LEFT(FORMAT_DATE('%B', start_date),3)) IS NULL THEN 0
+        ELSE 30
+    END
+      ) AS Total_No_of_Days
+  FROM (
+    SELECT
+      *
+    FROM (
+      SELECT
+        app_data.name AS Customer_Name,
+        contactNumber,
+        gender,
+        ageGroup,
+        SPLIT(TRIM(replace(lookingFor,"'",''),'[]')) AS lookingFor,
+        TRIM(replace(budget,"'",''),'[]') AS budget,
+        occasion,
+        occasionOther,
+        knowAbout,
+        knowAboutOther,
+        timeSpent,
+        reason,
+        agentCode,
+        Date,
+        invoiceNumber,
+        agents.*,
+        DATE(Date) AS start_date,
+        Old_Employee_Id,
+        New_Employee_Id,
+        Employee,
+        updated_agentCode
+      FROM (
+        SELECT
+          *
+        FROM
+          (SELECT *,coalesce(New_Employee_Id,agentCode) as Updated_agentCode FROM ( SELECT * FROM `Project_ID.Dataset_Name.all_store_walkin_app_data`) a
+LEFT JOIN (SELECT * FROM `Project_ID.Dataset_Name.Employee_id_changes`) b ON LOWER(TRIM(a.agentCode)) = LOWER(TRIM(b.Old_Employee_Id)))
+        WHERE
+          UPPER(Updated_agentCode) NOT IN ('AMEEN',
+            'AMIT-123')
+          AND Date != "2024-12-24 20:54:02") app_data
+      LEFT JOIN (
+        SELECT
+          *
+        FROM (select * from (SELECT
+  *,(CASE
+      WHEN REGEXP_CONTAINS(LOWER(TRIM(inventory_loction)),"own") OR REGEXP_CONTAINS(LOWER(TRIM(inventory_loction)),"frn") THEN REGEXP_EXTRACT(inventory_loction,r'(.*).\W.\w+$')
+      ELSE TRIM(inventory_loction)
+  END
+    ) AS inventory_loctionn
+FROM
+  `Project_ID.Dataset_Name.store_code`) a
+  left join
+(select (CASE
+      WHEN REGEXP_CONTAINS(LOWER(TRIM(Magento_Store_Name)),"own") OR REGEXP_CONTAINS(LOWER(TRIM(Magento_Store_Name)),"frn") THEN REGEXP_EXTRACT(Magento_Store_Name,r'(.*).\W.\w+$')
+      ELSE TRIM(Magento_Store_Name)
+  END
+    ) AS Magento_Store_Name,Synergics_Store_Name,Business_Head from `Project_ID.Dataset_Name.Magento_Synergics_StoreName`) b on trim(lower(a.inventory_loctionn)) = trim(lower(b.Magento_Store_Name))) store_code
+        LEFT JOIN (
+          SELECT
+            *
+          FROM
+            `Project_ID.Dataset_Name.codilar_agents`
+          WHERE
+            email NOT IN ('test@candere.com')
+            OR agent_code NOT IN ('AMEEN',
+              'AMIT-123')) codilar_agents
+        ON
+          (substring(store_code.code,1,5)) = (substring(codilar_agents.store_code,1,5))) agents
+      ON
+        lower(TRIM(app_data.Updated_agentCode)) = lower(TRIM(agents.agent_code))))))
