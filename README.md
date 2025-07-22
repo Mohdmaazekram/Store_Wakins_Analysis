@@ -1,7 +1,7 @@
 # 📊 Store Walk‑ins Dashboard
 
 ## 🔍 Overview
-This dashboard analyzes jewelry store footfall and customer behavior from **July 1 to July 21, 2025**. It helps identify conversion performance, customer preferences, demographic segments, agent effectiveness, and marketing insights.
+This dashboard analyzes jewelry store footfall and customer behavior. It helps identify conversion performance, customer preferences, demographic segments, agent effectiveness, and marketing insights.
 
 ---
 
